@@ -115,6 +115,11 @@
   </section>
 
   <section>
+    <h3>💝 우리가 고른 데이트</h3>
+    <ul class="list" id="wishList"></ul>
+  </section>
+
+  <section>
     <h3>➕ 아이디어 추가하기</h3>
     <form id="addForm">
       <input id="newTitle" placeholder="예: 한강에서 연날리기" required>
@@ -240,6 +245,7 @@ function markDone() {
   doneList.unshift({ t: current.t, date: today });
   store.set("date-done", doneList);
   renderDone();
+  renderWish();
   current = null;
   $("card").innerHTML = `<div class="placeholder">기록 완료! 다음 데이트도 뽑아 볼까요?</div>`;
   $("redrawBtn").disabled = true; $("doneBtn").disabled = true;
@@ -251,6 +257,14 @@ function renderDone() {
   ul.innerHTML = doneList.map(d => `<li><span>${escapeHtml(d.t)}</span><span class="when">${d.date}</span></li>`).join("");
 }
 
+function renderWish() {
+  const doneTitles = new Set(doneList.map(d => d.t));
+  const items = allIdeas().filter(i => i.c === "wish");
+  $("wishList").innerHTML = items.map(i =>
+    `<li><span>${escapeHtml(i.t)}</span><span class="when">${doneTitles.has(i.t) ? "했어요 ✓" : "하고 싶어요"}</span></li>`
+  ).join("");
+}
+
 $("drawBtn").onclick = draw;
 $("redrawBtn").onclick = draw;
 $("doneBtn").onclick = markDone;
@@ -260,12 +274,14 @@ $("addForm").onsubmit = (e) => {
   if (!t) return;
   customIdeas.push({ t, d: "우리가 직접 추가한 아이디어", c: $("newCat").value });
   store.set("date-custom", customIdeas);
+  renderWish();
   $("newTitle").value = "";
   $("newTitle").placeholder = "추가됐어요! 또 있나요?";
 };
 
 renderFilters();
 renderDone();
+renderWish();
 </script>
 </body>
 </html>
