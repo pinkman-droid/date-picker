@@ -82,6 +82,12 @@
   }
   form input { flex: 1; min-width: 0; }
   form button { border: none; background: var(--ink); color: #fff; border-radius: 12px; padding: 0 16px; cursor: pointer; }
+  .timeline { list-style: none; margin: 0; padding: 0 0 0 18px; border-left: 2px solid var(--accent-soft); }
+  .timeline li { position: relative; padding: 0 0 14px 6px; font-size: 14px; }
+  .timeline li::before { content: ""; position: absolute; left: -25px; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent-soft); border: 2px solid var(--accent); }
+  .timeline li.big::before { background: var(--accent); }
+  .timeline .d { color: var(--muted); font-size: 12px; display: block; }
+  .timeline li.big b { color: var(--accent); }
   footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 48px; }
 </style>
 </head>
@@ -112,6 +118,11 @@
       <small>고정 미션</small>
       정동진에서 일출 보며 내년에 하고 싶은 것 세 가지씩 적어 교환하기
     </div>
+  </section>
+
+  <section>
+    <h3>🌱 우리의 시작</h3>
+    <ol class="timeline" id="timeline"></ol>
   </section>
 
   <section>
@@ -173,6 +184,46 @@ const BASE_IDEAS = [
   { t: "VR 체험관", d: "현실에서 못 하는 모험을 같이", c: "indoor" },
 ];
 
+// ===== 캘린더에서 가져온 기록 (검토 후 반영) =====
+const STORY = [
+  { date: "2026.05.29", t: "처음 포착된 날" },
+  { date: "2026.08", t: "몇 번의 우연한 마주침" },
+  { date: "2026.08.27", t: "마을버스" },
+  { date: "2026.09.08", t: "전화번호 교환" },
+  { date: "2026.09.27", t: "피자" },
+  { date: "2026.09.29", t: "한정선" },
+  { date: "2026.09.30", t: "몬치치" },
+  { date: "2026.10.05", t: "서촌 이자카야, 진짜 첫 데이트", big: true },
+];
+
+const CALENDAR_DONE = [
+  { date: "2026-10-05", t: "서촌 이자카야" },
+  { date: "2026-10-08", t: "용문시장 호떡과 쌀국수" },
+  { date: "2026-10-11", t: "명동 쇼핑" },
+  { date: "2026-10-13", t: "타코" },
+  { date: "2026-10-18", t: "영화관, 평양냉면, 떡볶이" },
+  { date: "2026-10-19", t: "용산 카페와 집밥" },
+  { date: "2026-10-20", t: "효창공원" },
+  { date: "2026-10-22", t: "오목 대결" },
+  { date: "2026-10-23", t: "억새 구경" },
+  { date: "2026-10-24", t: "월미도" },
+  { date: "2026-10-25", t: "회크닉" },
+  { date: "2026-10-27", t: "순대국과 코인노래방" },
+  { date: "2026-10-30", t: "동묘앞" },
+  { date: "2026-10-31", t: "이태원" },
+  { date: "2026-11-01", t: "통닭" },
+  { date: "2026-11-03", t: "생선 요리와 피자설기" },
+  { date: "2026-11-06", t: "남산 나이트 페스티벌" },
+  { date: "2026-11-07", t: "덕수궁" },
+  { date: "2026-11-11", t: "육칼" },
+  { date: "2026-11-13", t: "참복지리탕" },
+  { date: "2026-11-14", t: "제천 나들이" },
+  { date: "2026-11-16", t: "콩불" },
+  { date: "2026-11-20", t: "치킨 먹고 같이 공부" },
+  { date: "2026-11-22", t: "영화 「스크루지」" },
+];
+// ===== 기록 끝 =====
+
 const store = {
   get(key, fallback) {
     try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
@@ -209,7 +260,7 @@ function renderFilters() {
 }
 
 function pool() {
-  const doneTitles = new Set(doneList.map(d => d.t));
+  const doneTitles = new Set(allDone().map(d => d.t));
   let list = allIdeas().filter(i => !doneTitles.has(i.t));
   if (activeCat !== "all") list = list.filter(i => i.c === activeCat);
   return list;
@@ -251,14 +302,19 @@ function markDone() {
   $("redrawBtn").disabled = true; $("doneBtn").disabled = true;
 }
 
+function allDone() {
+  return CALENDAR_DONE.concat(doneList).slice().sort((a, b) => b.date.localeCompare(a.date));
+}
+
 function renderDone() {
   const ul = $("doneList");
-  if (doneList.length === 0) { ul.innerHTML = `<li class="empty" style="border:none;background:none;padding:0">아직 비어 있어요. 첫 기록을 남겨 보세요!</li>`; return; }
-  ul.innerHTML = doneList.map(d => `<li><span>${escapeHtml(d.t)}</span><span class="when">${d.date}</span></li>`).join("");
+  const list = allDone();
+  if (list.length === 0) { ul.innerHTML = `<li class="empty" style="border:none;background:none;padding:0">아직 비어 있어요. 첫 기록을 남겨 보세요!</li>`; return; }
+  ul.innerHTML = list.map(d => `<li><span>${escapeHtml(d.t)}</span><span class="when">${d.date}</span></li>`).join("");
 }
 
 function renderWish() {
-  const doneTitles = new Set(doneList.map(d => d.t));
+  const doneTitles = new Set(allDone().map(d => d.t));
   const items = allIdeas().filter(i => i.c === "wish");
   $("wishList").innerHTML = items.map(i =>
     `<li><span>${escapeHtml(i.t)}</span><span class="when">${doneTitles.has(i.t) ? "했어요 ✓" : "하고 싶어요"}</span></li>`
@@ -279,7 +335,14 @@ $("addForm").onsubmit = (e) => {
   $("newTitle").placeholder = "추가됐어요! 또 있나요?";
 };
 
+function renderTimeline() {
+  $("timeline").innerHTML = STORY.map(x =>
+    `<li class="${x.big ? "big" : ""}"><span class="d">${x.date}</span>${x.big ? "<b>" + escapeHtml(x.t) + "</b>" : escapeHtml(x.t)}</li>`
+  ).join("");
+}
+
 renderFilters();
+renderTimeline();
 renderDone();
 renderWish();
 </script>
