@@ -88,6 +88,13 @@
   .timeline li.big::before { background: var(--accent); }
   .timeline .d { color: var(--muted); font-size: 12px; display: block; }
   .timeline li.big b { color: var(--accent); }
+  .pool summary { cursor: pointer; font-size: 16px; font-weight: 700; list-style: none; }
+  .pool summary::-webkit-details-marker { display: none; }
+  .pool summary::after { content: " ▾"; color: var(--muted); }
+  .pool[open] summary::after { content: " ▴"; }
+  .pool #poolCount { color: var(--muted); font-weight: 400; font-size: 14px; }
+  .pool h4 { font-size: 14px; margin: 16px 0 8px; color: var(--accent); }
+  .pool .list li.gone span:first-child { text-decoration: line-through; color: var(--muted); }
   footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 48px; }
 </style>
 </head>
@@ -118,6 +125,13 @@
       <small>고정 미션</small>
       정동진에서 일출 보며 내년에 하고 싶은 것 세 가지씩 적어 교환하기
     </div>
+  </section>
+
+  <section>
+    <details class="pool">
+      <summary>🎲 뽑기 상자 들여다보기 <span id="poolCount"></span></summary>
+      <div id="poolList"></div>
+    </details>
   </section>
 
   <section>
@@ -297,6 +311,7 @@ function markDone() {
   store.set("date-done", doneList);
   renderDone();
   renderWish();
+  renderPool();
   current = null;
   $("card").innerHTML = `<div class="placeholder">기록 완료! 다음 데이트도 뽑아 볼까요?</div>`;
   $("redrawBtn").disabled = true; $("doneBtn").disabled = true;
@@ -331,9 +346,25 @@ $("addForm").onsubmit = (e) => {
   customIdeas.push({ t, d: "우리가 직접 추가한 아이디어", c: $("newCat").value });
   store.set("date-custom", customIdeas);
   renderWish();
+  renderPool();
   $("newTitle").value = "";
   $("newTitle").placeholder = "추가됐어요! 또 있나요?";
 };
+
+function renderPool() {
+  const doneTitles = new Set(allDone().map(d => d.t));
+  const ideas = allIdeas();
+  const left = ideas.filter(i => !doneTitles.has(i.t)).length;
+  $("poolCount").textContent = `(남은 후보 ${left}개 / 전체 ${ideas.length}개)`;
+  $("poolList").innerHTML = Object.entries(CATEGORIES).map(([k, label]) => {
+    const items = ideas.filter(i => i.c === k);
+    if (!items.length) return "";
+    return `<h4>${label}</h4><ul class="list">` + items.map(i => {
+      const done = doneTitles.has(i.t);
+      return `<li class="${done ? "gone" : ""}"><span>${escapeHtml(i.t)}</span><span class="when">${done ? "했어요 ✓" : ""}</span></li>`;
+    }).join("") + `</ul>`;
+  }).join("");
+}
 
 function renderTimeline() {
   $("timeline").innerHTML = STORY.map(x =>
@@ -345,6 +376,7 @@ renderFilters();
 renderTimeline();
 renderDone();
 renderWish();
+renderPool();
 </script>
 </body>
 </html>
