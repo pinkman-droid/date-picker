@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>오늘 뭐 하지? — 데이트 아이디어 뽑기</title>
+<style>
+  :root {
+    --bg: #fbf6ef;
+    --ink: #2b2420;
+    --muted: #8a7d72;
+    --card: #ffffff;
+    --accent: #e0584a;
+    --accent-soft: #fde4df;
+    --line: #eadfd3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+  }
+  main { width: 100%; max-width: 520px; padding: 40px 20px 60px; }
+  header { text-align: center; margin-bottom: 28px; }
+  header h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: -0.5px; }
+  header p { margin: 0; color: var(--muted); font-size: 15px; }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 24px; }
+  .chip {
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    padding: 8px 14px; border-radius: 999px; font-size: 14px; cursor: pointer;
+    transition: all .15s ease;
+  }
+  .chip[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+  .stage { perspective: 1000px; margin-bottom: 20px; }
+  .card {
+    background: var(--card); border-radius: 22px; padding: 34px 28px; min-height: 240px;
+    box-shadow: 0 10px 30px rgba(43,36,32,.08); border: 1px solid var(--line);
+    display: flex; flex-direction: column; justify-content: center; text-align: center;
+    transition: transform .5s ease;
+  }
+  .card.flip { transform: rotateY(360deg); }
+  .card .tag { display: inline-block; align-self: center; background: var(--accent-soft); color: var(--accent);
+    font-size: 13px; font-weight: 600; padding: 4px 12px; border-radius: 999px; margin-bottom: 14px; }
+  .card h2 { font-size: 23px; margin: 0 0 12px; line-height: 1.4; letter-spacing: -0.3px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.6; }
+  .card .placeholder { color: var(--muted); font-size: 16px; }
+
+  .draw {
+    width: 100%; border: none; background: var(--accent); color: #fff; font-size: 18px; font-weight: 700;
+    padding: 16px; border-radius: 16px; cursor: pointer; transition: transform .1s ease, filter .15s;
+  }
+  .draw:hover { filter: brightness(1.05); }
+  .draw:active { transform: scale(.98); }
+
+  .actions { display: flex; gap: 8px; margin-top: 10px; }
+  .actions button {
+    flex: 1; border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    padding: 12px; border-radius: 12px; font-size: 14px; cursor: pointer;
+  }
+  .actions button:disabled { opacity: .4; cursor: default; }
+
+  section { margin-top: 36px; }
+  section h3 { font-size: 16px; margin: 0 0 12px; }
+  .pinned { background: var(--ink); color: #fff; border-radius: 16px; padding: 18px 20px; }
+  .pinned small { color: #cbbfb4; display: block; margin-bottom: 4px; }
+
+  .list { list-style: none; padding: 0; margin: 0; }
+  .list li { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 8px; font-size: 14px; display: flex; justify-content: space-between; gap: 10px; }
+  .list li span.when { color: var(--muted); white-space: nowrap; }
+  .empty { color: var(--muted); font-size: 14px; }
+
+  form { display: flex; gap: 8px; }
+  form input, form select {
+    border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-size: 14px; background: var(--card);
+  }
+  form input { flex: 1; min-width: 0; }
+  form button { border: none; background: var(--ink); color: #fff; border-radius: 12px; padding: 0 16px; cursor: pointer; }
+  footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 48px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>오늘 뭐 하지? 🎲</h1>
+    <p>카페에 앉아만 있기엔 우리 둘 다 너무 활동적이니까</p>
+  </header>
+
+  <div class="filters" id="filters"></div>
+
+  <div class="stage">
+    <div class="card" id="card">
+      <div class="placeholder">버튼을 눌러 오늘의 데이트를 뽑아 보세요</div>
+    </div>
+  </div>
+
+  <button class="draw" id="drawBtn">데이트 뽑기</button>
+  <div class="actions">
+    <button id="redrawBtn" disabled>다른 거!</button>
+    <button id="doneBtn" disabled>이거 했어요 ✓</button>
+  </div>
+
+  <section>
+    <h3>📌 언젠가 꼭</h3>
+    <div class="pinned">
+      <small>고정 미션</small>
+      정동진에서 일출 보며 내년에 하고 싶은 것 세 가지씩 적어 교환하기
+    </div>
+  </section>
+
+  <section>
+    <h3>➕ 아이디어 추가하기</h3>
+    <form id="addForm">
+      <input id="newTitle" placeholder="예: 한강에서 연날리기" required>
+      <select id="newCat"></select>
+      <button type="submit">추가</button>
+    </form>
+  </section>
+
+  <section>
+    <h3>✅ 우리가 한 것들</h3>
+    <ul class="list" id="doneList"></ul>
+  </section>
+
+  <footer>함께 한 것들은 이 브라우저에 저장돼요</footer>
+</main>
+
+<script>
+const CATEGORIES = {
+  active:  "몸 쓰기",
+  first:   "처음 해 보기",
+  season:  "계절 한정",
+  indoor:  "비 오는 날",
+  cheap:   "만 원의 행복",
+};
+
+const BASE_IDEAS = [
+  { t: "클라이밍 체험 수업 같이 듣기", d: "누가 더 높이 가나 내기. 진 사람이 저녁 메뉴 양보", c: "active" },
+  { t: "탱고 원데이 클래스", d: "발을 밟아도 웃으면서 넘어가기가 규칙", c: "first" },
+  { t: "둘이 처음 해 보는 것 다섯 가지 미션", d: "하루 안에 다섯 개 다 해내면 성공", c: "first" },
+  { t: "새벽 수산시장 구경 후 해장국", d: "일찍 일어난 사람이 이기는 데이트", c: "first" },
+  { t: "한강 따릉이 라이딩", d: "반포에서 시작해 원하는 다리까지. 편의점 라면으로 마무리", c: "active" },
+  { t: "서울 성곽길 한 구간 완주", d: "낙산 구간은 야경까지 챙길 수 있어요", c: "active" },
+  { t: "도자기 원데이 클래스", d: "서로의 컵을 만들어 주기. 완성품은 몇 주 뒤에 도착", c: "first" },
+  { t: "방탈출 카페 도전", d: "공포 테마는 합의 후에", c: "indoor" },
+  { t: "보드게임 카페에서 처음 보는 게임 3개", d: "룰 설명서 읽는 것도 데이트의 일부", c: "indoor" },
+  { t: "한 동네 골목만 걷는 '골목 탐험'", d: "지도 앱 금지. 마음에 드는 골목으로만 꺾기", c: "cheap" },
+  { t: "시장에서 만 원으로 저녁 장보기 대결", d: "각자 5천 원씩, 합쳐서 한 상 차리기", c: "cheap" },
+  { t: "필름 카메라 하나로 서로 찍어 주기", d: "현상할 때까지 결과는 비밀", c: "cheap" },
+  { t: "겨울 야외 스케이트장", d: "넘어지는 사람이 핫초코 사기", c: "season" },
+  { t: "크리스마스 마켓 구경", d: "서로에게 만 원 이하 선물 하나씩 몰래 사기", c: "season" },
+  { t: "벚꽃 대신 새벽 야경 드라이브", d: "인파 없는 시간대를 노리는 게 포인트", c: "season" },
+  { t: "실내 서핑 또는 트램펄린 파크", d: "다음 날 근육통은 덤", c: "indoor" },
+  { t: "쿠킹 클래스에서 낯선 나라 요리", d: "평소에 절대 안 먹던 나라로 고르기", c: "first" },
+  { t: "북한산 야간 산행 (짧은 코스)", d: "헤드랜턴 챙기고, 정상보다 야경이 목표", c: "active" },
+  { t: "무작위 버스 타고 종점까지", d: "내려서 처음 보이는 식당에서 밥 먹기", c: "cheap" },
+  { t: "VR 체험관", d: "현실에서 못 하는 모험을 같이", c: "indoor" },
+];
+
+const store = {
+  get(key, fallback) {
+    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+    catch (e) { return fallback; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+  },
+};
+
+let customIdeas = store.get("date-custom", []);
+let doneList = store.get("date-done", []);
+let activeCat = "all";
+let current = null;
+
+const $ = (id) => document.getElementById(id);
+
+function allIdeas() { return BASE_IDEAS.concat(customIdeas); }
+
+function renderFilters() {
+  const wrap = $("filters");
+  wrap.innerHTML = "";
+  const entries = [["all", "전체"], ...Object.entries(CATEGORIES)];
+  for (const [key, label] of entries) {
+    const b = document.createElement("button");
+    b.className = "chip";
+    b.textContent = label;
+    b.setAttribute("aria-pressed", key === activeCat);
+    b.onclick = () => { activeCat = key; renderFilters(); };
+    wrap.appendChild(b);
+  }
+  const sel = $("newCat");
+  sel.innerHTML = Object.entries(CATEGORIES).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+}
+
+function pool() {
+  const doneTitles = new Set(doneList.map(d => d.t));
+  let list = allIdeas().filter(i => !doneTitles.has(i.t));
+  if (activeCat !== "all") list = list.filter(i => i.c === activeCat);
+  return list;
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+}
+
+function draw() {
+  const list = pool().filter(i => !current || i.t !== current.t || pool().length === 1);
+  const card = $("card");
+  if (list.length === 0) {
+    current = null;
+    card.innerHTML = `<div class="placeholder">이 분류는 다 해 봤어요! 새 아이디어를 추가해 주세요 🎉</div>`;
+    $("redrawBtn").disabled = true; $("doneBtn").disabled = true;
+    return;
+  }
+  current = list[Math.floor(Math.random() * list.length)];
+  card.classList.remove("flip"); void card.offsetWidth; card.classList.add("flip");
+  setTimeout(() => {
+    card.innerHTML = `
+      <span class="tag">${CATEGORIES[current.c]}</span>
+      <h2>${escapeHtml(current.t)}</h2>
+      <p>${escapeHtml(current.d || "")}</p>`;
+  }, 200);
+  $("redrawBtn").disabled = false; $("doneBtn").disabled = false;
+}
+
+function markDone() {
+  if (!current) return;
+  const today = new Date().toISOString().slice(0, 10);
+  doneList.unshift({ t: current.t, date: today });
+  store.set("date-done", doneList);
+  renderDone();
+  current = null;
+  $("card").innerHTML = `<div class="placeholder">기록 완료! 다음 데이트도 뽑아 볼까요?</div>`;
+  $("redrawBtn").disabled = true; $("doneBtn").disabled = true;
+}
+
+function renderDone() {
+  const ul = $("doneList");
+  if (doneList.length === 0) { ul.innerHTML = `<li class="empty" style="border:none;background:none;padding:0">아직 비어 있어요. 첫 기록을 남겨 보세요!</li>`; return; }
+  ul.innerHTML = doneList.map(d => `<li><span>${escapeHtml(d.t)}</span><span class="when">${d.date}</span></li>`).join("");
+}
+
+$("drawBtn").onclick = draw;
+$("redrawBtn").onclick = draw;
+$("doneBtn").onclick = markDone;
+$("addForm").onsubmit = (e) => {
+  e.preventDefault();
+  const t = $("newTitle").value.trim();
+  if (!t) return;
+  customIdeas.push({ t, d: "우리가 직접 추가한 아이디어", c: $("newCat").value });
+  store.set("date-custom", customIdeas);
+  $("newTitle").value = "";
+  $("newTitle").placeholder = "추가됐어요! 또 있나요?";
+};
+
+renderFilters();
+renderDone();
+</script>
+</body>
+</html>
